@@ -1,0 +1,26 @@
+version: '3'
+
+# services
+services:
+  #setup application
+  app:
+    build: . # Use an image built from the specified dockerfile in the current directory.
+    ports:
+      - 8080:9000
+  #setup postgress
+  postgress:
+    image: postgres
+    environment: 
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: telness
+      POSTGRES_DB: telness
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres:/data/postgres
+      - ./create-table.sql:/docker-entrypoint-initdb.d/create-table.sql
+    restart: always
+
+volumes: 
+  postgres:
