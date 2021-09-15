@@ -5,59 +5,87 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/pmadhvi/telness-manager/model"
-	log "github.com/sirupsen/logrus"
 )
 
 // CreateHandler is an httphandler to handle request to create an subscription
 func (s Server) CreateHandler(rw http.ResponseWriter, req *http.Request) {
 	reqBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.Errorf("error occured when reading request body: %v", err)
+		s.Log.Errorf("error occured when reading request body: %v", err)
+	}
+	var subreq model.CreateSubscription
+	err = json.Unmarshal(reqBody, &subreq)
+	if err != nil {
+		s.Log.Errorf("error occured when unmarshalling reqBody into Subscription type: %v", err)
 	}
 	var sub model.Subscription
-	err = json.Unmarshal(reqBody, &sub)
+	sub, err = s.SubscriptionService.Create(subreq)
 	if err != nil {
-		log.Errorf("error occured when unmarshalling reqBody into Subscription type: %v", err)
+		s.Log.Errorf("Could not create a new subscription, %v", err)
+		respMsg := model.ErrorMessage{
+			Message: "Could not create a new subscription",
+		}
+		respondErrorJSON(rw, 400, respMsg)
+		return
 	}
-	s.SubscriptionService.Find()
-	respMsg := struct{}{} // TODO: define this later
-	log.Infof("Request Body: %v", sub)
-	respondSuccessJSON(rw, http.StatusCreated, respMsg)
+	respondSuccessJSON(rw, http.StatusCreated, sub)
+}
+
+// UpdateHandler is an httphandler to handle request to create an subscription
+func (s Server) UpdateHandler(rw http.ResponseWriter, req *http.Request) {
+	reqBody, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		s.Log.Errorf("error occured when reading request body: %v", err)
+	}
+	var subreq model.CreateSubscription
+	err = json.Unmarshal(reqBody, &subreq)
+	if err != nil {
+		s.Log.Errorf("error occured when unmarshalling reqBody into Subscription type: %v", err)
+	}
+	var sub model.Subscription
+	sub, err = s.SubscriptionService.Update(subreq)
+	if err != nil {
+		s.Log.Errorf("Could not update subscription with msidn %v, %v", err)
+		respMsg := model.ErrorMessage{
+			Message: "Could not update subscription",
+		}
+		respondErrorJSON(rw, 400, respMsg)
+		return
+	}
+	respondSuccessJSON(rw, http.StatusOK, sub)
 }
 
 // FindHandler is an httphandler to handle request to find an subscription
-func FindHandler(rw http.ResponseWriter, req *http.Request) {
+func (s Server) FindHandler(rw http.ResponseWriter, req *http.Request) {
 	// feteching the quary parameters from request url
 	vars := mux.Vars(req)
-	iban := vars["id"]
+	msidn := vars["msidn"]
+	uuidMsidn := uuid.MustParse(msidn)
 
-	respMsg := struct{}{} // TODO: define this later
-	log.Infof("Request Body ID: %v", iban)
-	respondSuccessJSON(rw, http.StatusOK, respMsg)
-}
-
-// UpdateHandler is an httphandler to handle request to update an subscription
-func UpdateHandler(rw http.ResponseWriter, req *http.Request) {
-
-	// feteching the quary parameters from request url
-	vars := mux.Vars(req)
-	iban := vars["id"]
-
-	respMsg := struct{}{} // TODO: define this later
-	log.Infof("Request Body ID: %v", iban)
-	respondSuccessJSON(rw, http.StatusOK, respMsg)
+	var sub model.Subscription
+	sub, err := s.SubscriptionService.FindbyID(uuidMsidn)
+	if err != nil {
+		s.Log.Errorf("Could not find subscription with msidn %v, %v", err)
+		respMsg := model.ErrorMessage{
+			Message: "Could not find subscription",
+		}
+		respondErrorJSON(rw, 400, respMsg)
+		return
+	}
+	respondSuccessJSON(rw, http.StatusOK, sub)
 }
 
 // CheckHealthHandler is an httphandler to handle request to check application health
-func CheckHealthHandler(rw http.ResponseWriter, req *http.Request) {
+func (s Server) CheckHealthHandler(rw http.ResponseWriter, req *http.Request) {
 	respMsg := struct {
 		Message string `json:"message"`
 	}{
 		Message: "Application is alive.",
 	}
-	log.Infof("Health check response: %v", respMsg)
+	s.Log.Infof("Health check response: %v", respMsg)
 	respondSuccessJSON(rw, 200, respMsg)
 }
 

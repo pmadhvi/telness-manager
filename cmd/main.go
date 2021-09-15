@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -24,29 +23,40 @@ func main() {
 	// read .env file for env variables
 	err := godotenv.Load()
 	if err != nil {
-		log.Error("Error loading .env file", err)
+		fmt.Errorf("Error loading .env file %v", err)
 	}
 	// read the port from env variable
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.Info("port env variable not set, so using default port 8080")
+		fmt.Println("port env variable not set, so using default port 8080")
 		port = "8080"
 	}
-	dbname := os.Getenv("DB")
-	dbuser := os.Getenv("DBUSER")
-	dbpass := os.Getenv("DBPASS")
-	dbhost := os.Getenv("DBHOST")
-	dbport := os.Getenv("DBPORT")
+	dbname := os.Getenv("POSTGRES_DB")
+	dbuser := os.Getenv("POSTGRES_USER")
+	dbpass := os.Getenv("POSTGRES_PASSWORD")
+	dbhost := os.Getenv("POSTGRES_HOST")
+	dbport := os.Getenv("POSTGRES_PORT")
 
 	//Open db connection
-	dbinfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", dbhost, dbport, dbuser, dbpass, dbname)
+	dbinfo := fmt.Sprintf("postgres://%v:%v@%v:%v/%v?sslmode=disable",
+		dbuser,
+		dbpass,
+		dbhost,
+		dbport,
+		dbname)
+
 	db, err := sql.Open("postgres", dbinfo)
 	if err != nil {
-		log.Error(errors.New("error connecting database, "), err)
+		log.Errorf("error connecting database %v", err)
 	}
+	if err = db.Ping(); err != nil {
+		log.Errorf("Postgres ping error : (%v)", err)
+	}
+	defer db.Close()
+
 	var (
-		subscriptionRepo = postgres.NewSubscriptionRepo(*log, db)
-		subsvc           = service.SubscriptionSvc{SubscriptionRepo: subscriptionRepo}
+		subscriptionRepo = postgres.NewSubscriptionRepo(db, log)
+		subsvc           = service.SubscriptionSvc{SubscriptionRepo: subscriptionRepo, Log: log}
 	)
 
 	// setup server and routes
@@ -72,7 +82,7 @@ func main() {
 
 	// get errors from chan and exit the application
 	if err := <-errorChan; err != nil {
-		log.Error(err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 

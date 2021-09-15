@@ -7,13 +7,18 @@ services:
     build: . # Use an image built from the specified dockerfile in the current directory.
     ports:
       - 8080:9000
+    links:
+      - postgres
   #setup postgress
-  postgress:
+  postgres:
     image: postgres
-    environment: 
+    container_name: telness_postgres
+    environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: telness
       POSTGRES_DB: telness
+      POSTGRES_HOST: telness_postgres
+      POSTGRES_PORT: 5432
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"

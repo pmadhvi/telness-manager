@@ -17,21 +17,22 @@ type Server struct {
 }
 
 type subscriptionService interface {
-	Create(sub *model.Subscription) error
+	Create(sub model.CreateSubscription) (model.Subscription, error)
 	FindbyID(id uuid.UUID) (model.Subscription, error)
-	Update(sub *model.Subscription) (model.Subscription, error)
+	Update(sub model.CreateSubscription) (model.Subscription, error)
 }
 
 //  defines routes and their handlers and start the server
 func (s Server) Start() error {
+	log.Info("Telness server is starting up")
 	// Initialize mux router
 	router := mux.NewRouter()
 
 	// define routes and call their handler function
-	router.HandleFunc("/api/subscription/health", CheckHealthHandler)
-	router.HandleFunc("/api/subscription/{id}", FindHandler)
-	//router.HandleFunc("/api/subscription/", ValidateIbanHandler).Methods(http.Post)
-	//router.HandleFunc("/api/subscription/", ValidateIbanHandler).Method(Patch)
+	router.HandleFunc("/api/subscription/health", s.CheckHealthHandler)
+	router.HandleFunc("/api/subscription/{msidn}", s.FindHandler)
+	router.HandleFunc("/api/subscription", s.CreateHandler).Methods("Post")
+	router.HandleFunc("/api/subscription", s.UpdateHandler).Methods("Patch")
 
 	// start the server on specified port
 	err := http.ListenAndServe(fmt.Sprintf(":%s", s.Port), router)

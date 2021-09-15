@@ -1,24 +1,27 @@
-# iban-validator
-Validates IBAN for different countries
-
-IBAN Validator API
-==================================
+# telness-mananger
+Manages the subscription(Create, Update and Get)
 
 ## Description
-The Application checks if provided iban is a valid iban or not
+The Application exposes rest api's for creating, updataing subscription and  finding existing subscription in system.
 
 The routes for application includes:
 -----------------------------------------------
 
-* Health: "/api/iban/validate/health"
-* ValidateIban: "/api/iban/validate/{iban}"
+* Health: "/api/subscription/health"
+* FindSubscription: "/api/subscription/{msidn}"
+* CreateSubscription: "/api/subscription"
+* UpdateSubscription: "/api/subscription"
 
-iban: define your country iban
+msidn: define your subscription unique id.
+
+Note: CreateSubscription & UpdateSubscription take json data to creat and update subscription
 
 The URLS the application supports :
 ------------------------------------
-* [Health](http://localhost:9000/api/iban/validate/health) 
-* [ValidateIban](http://localhost:9000//api/iban/validate/{iban})
+* [Health](http://localhost:9000/api/subscription/health) 
+* [FindSubscription](http://localhost:9000/api/subscription/{msidn})
+* [CreateSubscription](http://localhost:9000/api/subscription)
+* [UpdateSubscription](http://localhost:9000/api/subscription)
 
 Note: Port is 8080 when using docker, else port is set to 9000 in .env file(when port cannot be accessed from env file, then default port is 8080).
 
@@ -31,28 +34,12 @@ Note: Port is 8080 when using docker, else port is set to 9000 in .env file(when
 
 ## Running the application
 
-* To build the application on mac-osx:
+* To build the application:
 
 ```bash
     make build
     cd bin/
-    ./iban-validator
-```
-
-* To build the application on linux-32:
-
-```bash
-    make build-linux-32
-    cd bin/
-    ./iban-validator-linux-32
-```
-
-* To build the application on linux-64:
-
-```bash
-    make build-linux-64
-    cd bin/
-    ./iban-validator-linux-64
+    ./telness-manager
 ```
 
 * To run test:
@@ -68,10 +55,14 @@ Note: Port is 8080 when using docker, else port is set to 9000 in .env file(when
 
 * To run the application inside container:
 ```bash
-    docker-compose up
-    curl http://localhost:8080/api/iban/validate/health
-    curl http://localhost:8080/api/iban/validate/BA391290079401028494
-```
+    make up
 
-## Iban Validation Reference: 
-https://www.morfoedro.it/doc.php?n=219&lang=en#:~:text=The%20IBAN%20must%20have%20a,digits%20from%200%20to%209.
+    curl -X GET http://localhost:8080/api/subscription/health
+    ------------------------------------------------------------------------
+    curl -X POST http://localhost:8080/api/subscription -d '{"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed", "activate_at": "2021-09-13", "sub_type": "pbx", "status": "pending"}'
+    ------------------------------------------------------------------------
+    curl -X PATCH  http://localhost:8080/api/subscription -d '{"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed", "activate_at": "2021-09-15", "sub_type": "pbx", "status": "activated"}'
+    ------------------------------------------------------------------------
+    curl -X GET http://localhost:8080/api/subscription/c019ecde-17cb-4ef8-8a7d-85937a9250ed
+
+```
