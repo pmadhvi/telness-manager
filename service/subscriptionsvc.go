@@ -7,9 +7,9 @@ import (
 )
 
 type subscriptionRepo interface {
-	CreateSubscription(sub model.CreateSubscription) (model.Subscription, error)
+	CreateSubscription(sub model.CreateSubscription) error
 	FindSubscriptionbyID(id uuid.UUID) (model.Subscription, error)
-	UpdateSubscription(sub model.CreateSubscription) (model.Subscription, error)
+	UpdateSubscription(sub model.CreateSubscription) error
 }
 
 type SubscriptionSvc struct {
@@ -18,9 +18,14 @@ type SubscriptionSvc struct {
 }
 
 func (s SubscriptionSvc) Create(subreq model.CreateSubscription) (model.Subscription, error) {
-	sub, err := s.SubscriptionRepo.CreateSubscription(subreq)
+	err := s.SubscriptionRepo.CreateSubscription(subreq)
 	if err != nil {
 		s.Log.Errorf("Could not create subscription due to error: %v", err)
+		return model.Subscription{}, err
+	}
+	sub, err := s.SubscriptionRepo.FindSubscriptionbyID(subreq.Msidn)
+	if err != nil {
+		s.Log.Errorf("Could not find created subscription due to error: %v", err)
 		return model.Subscription{}, err
 	}
 	return sub, nil
@@ -37,9 +42,14 @@ func (s SubscriptionSvc) FindbyID(id uuid.UUID) (model.Subscription, error) {
 }
 
 func (s SubscriptionSvc) Update(subreq model.CreateSubscription) (model.Subscription, error) {
-	sub, err := s.SubscriptionRepo.UpdateSubscription(subreq)
+	err := s.SubscriptionRepo.UpdateSubscription(subreq)
 	if err != nil {
 		s.Log.Errorf("Could not update subscription due to error: %v", err)
+		return model.Subscription{}, err
+	}
+	sub, err := s.SubscriptionRepo.FindSubscriptionbyID(subreq.Msidn)
+	if err != nil {
+		s.Log.Errorf("Could not find updated subscription due to error: %v", err)
 		return model.Subscription{}, err
 	}
 	return sub, nil

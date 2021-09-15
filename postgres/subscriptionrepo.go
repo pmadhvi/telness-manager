@@ -21,19 +21,15 @@ func NewSubscriptionRepo(db *sql.DB, log *log.Logger) *subscriptionRepo {
 	}
 }
 
-func (sr subscriptionRepo) CreateSubscription(sub model.CreateSubscription) (model.Subscription, error) {
+func (sr subscriptionRepo) CreateSubscription(sub model.CreateSubscription) error {
 	query := `INSERT INTO subscription(msidn, activate_at, sub_type, status, created_at, modified_at)
 	VALUES($1, $2, $3, $4, $5, $6)`
 	_, err := sr.db.Exec(query, sub.Msidn, sub.ActivateAt, sub.SubType, sub.Status, time.Now(), time.Now())
 	if err != nil {
 		sr.log.Errorf("could not insert the data in db: %v", err)
+		return err
 	}
-	var respSub model.Subscription
-	respSub, err = sr.FindSubscriptionbyID(sub.Msidn)
-	if err != nil {
-		return model.Subscription{}, err
-	}
-	return respSub, nil
+	return nil
 }
 
 func (sr subscriptionRepo) FindSubscriptionbyID(msidn uuid.UUID) (model.Subscription, error) {
@@ -49,7 +45,7 @@ func (sr subscriptionRepo) FindSubscriptionbyID(msidn uuid.UUID) (model.Subscrip
 	return sub, nil
 }
 
-func (sr subscriptionRepo) UpdateSubscription(sub model.CreateSubscription) (model.Subscription, error) {
+func (sr subscriptionRepo) UpdateSubscription(sub model.CreateSubscription) error {
 	query := `UPDATE subscription
 		SET 
 		(activate_at, sub_type, status, modified_at) = ($1, $2, $3, $4)
@@ -57,11 +53,8 @@ func (sr subscriptionRepo) UpdateSubscription(sub model.CreateSubscription) (mod
 	_, err := sr.db.Exec(query, sub.ActivateAt, sub.SubType, sub.Status, time.Now(), sub.Msidn)
 	if err != nil {
 		sr.log.Errorf("could not update the data in db: %v", err)
+		return err
 	}
-	var respSub model.Subscription
-	respSub, err = sr.FindSubscriptionbyID(sub.Msidn)
-	if err != nil {
-		return model.Subscription{}, err
-	}
-	return respSub, nil
+
+	return nil
 }
