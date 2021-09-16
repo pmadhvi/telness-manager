@@ -33,6 +33,10 @@ func (s Server) Start() error {
 	router.HandleFunc("/api/subscription/{msidn}", s.FindHandler)
 	router.HandleFunc("/api/subscription", s.CreateHandler).Methods("Post")
 	router.HandleFunc("/api/subscription", s.UpdateHandler).Methods("Patch")
+	router.HandleFunc("/api/subscription/cancel/{msidn}", s.CancelHandler)
+	router.HandleFunc("/api/subscription/pause/{msidn}", s.PauseHandler)
+	router.HandleFunc("/api/subscription/reactivate/{msidn}", s.ReactivateHandler)
+	router.HandleFunc("/api/subscription/update_activation_date/msidn/{msidn}/date/{date}", s.UpdateActivationDateHandler)
 
 	// start the server on specified port
 	err := http.ListenAndServe(fmt.Sprintf(":%s", s.Port), router)

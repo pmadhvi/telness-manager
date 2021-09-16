@@ -11,8 +11,13 @@ The routes for application includes:
 * FindSubscription: "/api/subscription/{msidn}"
 * CreateSubscription: "/api/subscription"
 * UpdateSubscription: "/api/subscription"
+* CancelSubscription: "/api/subscription/cancel/{msidn}"
+* PauseSubscription: "/api/subscription/pause/{msidn}"
+* ReactivateSubscription: "/api/subscription/reactivate/{msidn}"
+* UpdateActivateDate: "/api/subscription/update_activation_date/msidn/{msidn}/date/{date}"
 
 msidn: define your subscription unique id.
+date: string value of future date
 
 Note: CreateSubscription & UpdateSubscription take json data to creat and update subscription
 
@@ -22,6 +27,10 @@ The URLS the application supports :
 * [FindSubscription](http://localhost:9000/api/subscription/{msidn})
 * [CreateSubscription](http://localhost:9000/api/subscription)
 * [UpdateSubscription](http://localhost:9000/api/subscription)
+* [CancelSubscription](http://localhost:9000/api/subscription/cancel/{msidn})
+* [PauseSubscription](http://localhost:9000/api/subscription/pause/{msidn})
+* [ReactivateSubscription](http://localhost:9000/api/subscription/reactivate/{msidn})
+* [UpdateActivateDate](http://localhost:9000/api/subscription/update_activation_date/msidn/{msidn}/date/{date})
 
 Note: Port is 8080 when using docker, else port is set to 9000 in .env file(when port cannot be accessed from env file, then default port is 8080).
 
@@ -63,6 +72,23 @@ Note: Port is 8080 when using docker, else port is set to 9000 in .env file(when
     ------------------------------------------------------------------------
     curl -X PATCH  http://localhost:8080/api/subscription -d '{"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed", "activate_at": "2021-09-15", "sub_type": "pbx", "status": "activated"}'
     ------------------------------------------------------------------------
+
     curl -X GET http://localhost:8080/api/subscription/c019ecde-17cb-4ef8-8a7d-85937a9250ed
 
+    ------------------------------------------------------------------------
+
+    curl -X GET http://localhost:8080/api/subscription/cancel/c019ecde-17cb-4ef8-8a7d-85937a9250ed
+
+    ------------------------------------------------------------------------
+
+    curl -X GET http://localhost:8080/api/subscription/pause/c019ecde-17cb-4ef8-8a7d-85937a9250ed
+
+    ------------------------------------------------------------------------
+
+    curl -X GET http://localhost:8080/api/subscription/reactivate/c019ecde-17cb-4ef8-8a7d-85937a9250ed
+
+    ------------------------------------------------------------------------
+
+    curl -X GET http://localhost:8080/api/subscription/update_activation_date/msidn/c019ecde-17cb-4ef8-8a7d-85937a9250ed/date/2021-10-19
+    ------------------------------------------------------------------------
 ```
