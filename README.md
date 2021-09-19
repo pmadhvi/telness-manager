@@ -90,3 +90,5 @@ Note: Port is 8080 when using docker, else port is set to 9000 in .env file(when
 
     ------------------------------------------------------------------------
 ```
+Note: 
+* Getting operator details from PTS is not implemented.

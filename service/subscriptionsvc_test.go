@@ -34,7 +34,7 @@ func TestSubscriptionSvc_FindbyID_Success(t *testing.T) {
 		return model.Subscription{
 			Msidn:      msidn,
 			ActivateAt: now,
-			SubType:    "pbx",
+			SubType:    "cell",
 			Status:     "pending",
 			CreatedAt:  now,
 			ModifiedAt: now,
@@ -46,7 +46,7 @@ func TestSubscriptionSvc_FindbyID_Success(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, msidn, got.Msidn)
 	assert.EqualValues(t, now, got.ActivateAt)
-	assert.EqualValues(t, "pbx", got.SubType)
+	assert.EqualValues(t, "cell", got.SubType)
 	assert.EqualValues(t, "pending", got.Status)
 }
 
@@ -98,7 +98,7 @@ func TestSubscriptionSvc_Update_Fail(t *testing.T) {
 	request := model.CreateSubscription{
 		Msidn:      msidn,
 		ActivateAt: now,
-		SubType:    "pbx",
+		SubType:    "cell",
 		Status:     "activated",
 	}
 	_, err := s.Update(request)
@@ -115,7 +115,7 @@ func TestSubscriptionSvc_Create_Success(t *testing.T) {
 		return model.Subscription{
 			Msidn:      msidn,
 			ActivateAt: now,
-			SubType:    "switch",
+			SubType:    "cell",
 			Status:     "pending",
 			CreatedAt:  now,
 			ModifiedAt: now,
@@ -124,7 +124,7 @@ func TestSubscriptionSvc_Create_Success(t *testing.T) {
 	request := model.CreateSubscription{
 		Msidn:      msidn,
 		ActivateAt: now,
-		SubType:    "switch",
+		SubType:    "cell",
 		Status:     "pending",
 	}
 	got, err := s.Create(request)
@@ -133,7 +133,7 @@ func TestSubscriptionSvc_Create_Success(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, msidn, got.Msidn)
 	assert.EqualValues(t, now, got.ActivateAt)
-	assert.EqualValues(t, "switch", got.SubType)
+	assert.EqualValues(t, "cell", got.SubType)
 	assert.EqualValues(t, "pending", got.Status)
 }
 

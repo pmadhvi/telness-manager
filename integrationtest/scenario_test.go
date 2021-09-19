@@ -90,7 +90,7 @@ func TestCreateSubscription(t *testing.T) {
 	msidnUUID, _ = uuid.Parse("c019ecde-17cb-4ef8-8a7d-85937a9250ed")
 	request := []byte(`{
 		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
-		"activate_at": "2021-09-17",
+		"activate_at": "2021-10-17",
 		"sub_type":    "pbx",
 		"status":     "pending"}`)
 	req, rw := requestResponse(http.MethodPost, "/api/subscription", request)
@@ -143,12 +143,12 @@ func TestUpdateSubscription(t *testing.T) {
 	request := []byte(`{
 		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
 		"activate_at": "2021-10-17",
-		"sub_type":    "switch",
+		"sub_type":    "cell",
 		"status":     "activated"}`)
 	req, rw := requestResponse(http.MethodPatch, "/api/subscription", request)
 
 	mockUpdateSubscription(msidnUUID, now, "pbx", "pending")
-	mockFindSubscription(msidnUUID, now, "switch", "activated")
+	mockFindSubscription(msidnUUID, now, "cell", "activated")
 	handler := http.HandlerFunc(server.UpdateHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusOK {
@@ -162,7 +162,7 @@ func TestUpdateSubscription(t *testing.T) {
 	}
 	assert.EqualValues(t, msidnUUID, resp.Msidn)
 	assert.EqualValues(t, now, resp.ActivateAt)
-	assert.EqualValues(t, "switch", resp.SubType)
+	assert.EqualValues(t, "cell", resp.SubType)
 	assert.EqualValues(t, "activated", resp.Status)
 }
 
@@ -197,7 +197,7 @@ func TestFindSubscription(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{
 		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
 	})
-	mockFindSubscription(msidnUUID, now, "switch", "activated")
+	mockFindSubscription(msidnUUID, now, "cell", "activated")
 	handler := http.HandlerFunc(server.FindHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusOK {
@@ -211,7 +211,7 @@ func TestFindSubscription(t *testing.T) {
 	}
 	assert.EqualValues(t, msidnUUID, resp.Msidn)
 	assert.EqualValues(t, now, resp.ActivateAt)
-	assert.EqualValues(t, "switch", resp.SubType)
+	assert.EqualValues(t, "cell", resp.SubType)
 	assert.EqualValues(t, "activated", resp.Status)
 }
 
@@ -267,8 +267,8 @@ func TestCancelSubscription(t *testing.T) {
 		"msidn":  "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
 		"status": "cancelled",
 	})
-	mockUpdateSubscription(msidnUUID, now, "switch", "activated")
-	mockFindSubscription(msidnUUID, "2021-10-11", "switch", "cancelled")
+	mockUpdateSubscription(msidnUUID, now, "cell", "activated")
+	mockFindSubscription(msidnUUID, "2021-10-11", "cell", "cancelled")
 	handler := http.HandlerFunc(server.UpdateStatusHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusOK {
@@ -282,7 +282,7 @@ func TestCancelSubscription(t *testing.T) {
 	}
 	assert.EqualValues(t, msidnUUID, resp.Msidn)
 	assert.EqualValues(t, "2021-10-11", resp.ActivateAt)
-	assert.EqualValues(t, "switch", resp.SubType)
+	assert.EqualValues(t, "cell", resp.SubType)
 	assert.EqualValues(t, "cancelled", resp.Status)
 }
 
@@ -340,8 +340,8 @@ func TestUpdateActivationDate(t *testing.T) {
 		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
 		"date":  "2021-10-11",
 	})
-	mockUpdateSubscription(msidnUUID, now, "switch", "pending")
-	mockFindSubscription(msidnUUID, "2021-10-11", "switch", "pending")
+	mockUpdateSubscription(msidnUUID, now, "cell", "pending")
+	mockFindSubscription(msidnUUID, "2021-10-11", "cell", "pending")
 	handler := http.HandlerFunc(server.UpdateActivationDateHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusOK {
@@ -355,7 +355,7 @@ func TestUpdateActivationDate(t *testing.T) {
 	}
 	assert.EqualValues(t, msidnUUID, resp.Msidn)
 	assert.EqualValues(t, "2021-10-11", resp.ActivateAt)
-	assert.EqualValues(t, "switch", resp.SubType)
+	assert.EqualValues(t, "cell", resp.SubType)
 	assert.EqualValues(t, "pending", resp.Status)
 }
 
