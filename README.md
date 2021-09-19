@@ -19,7 +19,7 @@ date: string value of future date
 
 Note: CreateSubscription & UpdateSubscription take json data to create and update subscription
 
-The URLS the application supports :
+The URLS the application supports:
 ------------------------------------
 * [Health](http://localhost:9000/api/subscription/health) 
 * [FindSubscription](http://localhost:9000/api/subscription/msidn/{msidn})
@@ -86,7 +86,6 @@ Note: Port is 8080 when using docker, else port is set to 9000 in .env file(when
 
     ------------------------------------------------------------------------
     [Update activation date Request]:
-
     curl -X PATCH http://localhost:8080/api/subscription/update-activation-date/msidn/c019ecde-17cb-4ef8-8a7d-85937a9250ed/date/2021-10-19
 
     ------------------------------------------------------------------------
