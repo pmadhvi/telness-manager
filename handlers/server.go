@@ -13,10 +13,10 @@ import (
 type Server struct {
 	Log                 *log.Logger
 	Port                string
-	SubscriptionService subscriptionService
+	SubscriptionService SubscriptionService
 }
 
-type subscriptionService interface {
+type SubscriptionService interface {
 	Create(sub model.CreateSubscription) (model.Subscription, error)
 	FindbyID(id uuid.UUID) (model.Subscription, error)
 	Update(sub model.CreateSubscription) (model.Subscription, error)
@@ -30,13 +30,11 @@ func (s Server) Start() error {
 
 	// define routes and call their handler function
 	router.HandleFunc("/api/subscription/health", s.CheckHealthHandler)
-	router.HandleFunc("/api/subscription/{msidn}", s.FindHandler)
+	router.HandleFunc("/api/subscription/msidn/{msidn}", s.FindHandler).Methods("Get")
 	router.HandleFunc("/api/subscription", s.CreateHandler).Methods("Post")
 	router.HandleFunc("/api/subscription", s.UpdateHandler).Methods("Patch")
-	router.HandleFunc("/api/subscription/cancel/{msidn}", s.CancelHandler)
-	router.HandleFunc("/api/subscription/pause/{msidn}", s.PauseHandler)
-	router.HandleFunc("/api/subscription/reactivate/{msidn}", s.ReactivateHandler)
-	router.HandleFunc("/api/subscription/update_activation_date/msidn/{msidn}/date/{date}", s.UpdateActivationDateHandler)
+	router.HandleFunc("/api/subscription/update-subscription/msidn/{msidn}/status/{status}", s.UpdateStatusHandler).Methods("Patch")
+	router.HandleFunc("/api/subscription/update-activation-date/msidn/{msidn}/date/{date}", s.UpdateActivationDateHandler).Methods("Patch")
 
 	// start the server on specified port
 	err := http.ListenAndServe(fmt.Sprintf(":%s", s.Port), router)

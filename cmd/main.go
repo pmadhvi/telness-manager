@@ -60,11 +60,7 @@ func main() {
 	)
 
 	// setup server and routes
-	server := handlers.Server{
-		Log:                 log,
-		Port:                port,
-		SubscriptionService: subsvc,
-	}
+	server := handlers.Server{Log: log, Port: port, SubscriptionService: subsvc}
 
 	errorChan := make(chan error)
 
