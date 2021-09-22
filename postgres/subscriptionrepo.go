@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/pmadhvi/telness-manager/model"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,9 +21,9 @@ func NewSubscriptionRepo(db *sql.DB, log *log.Logger) *subscriptionRepo {
 }
 
 func (sr subscriptionRepo) CreateSubscription(sub model.CreateSubscription) error {
-	query := `INSERT INTO subscription(msidn, activate_at, sub_type, status, created_at, modified_at)
+	query := `INSERT INTO subscription(msisdn, activate_at, sub_type, status, created_at, modified_at)
 	VALUES($1, $2, $3, $4, $5, $6)`
-	_, err := sr.db.Exec(query, sub.Msidn, sub.ActivateAt, sub.SubType, sub.Status, time.Now(), time.Now())
+	_, err := sr.db.Exec(query, sub.Msisdn, sub.ActivateAt, sub.SubType, sub.Status, time.Now(), time.Now())
 	if err != nil {
 		sr.log.Errorf("could not insert the data in db: %v", err)
 		return err
@@ -32,12 +31,12 @@ func (sr subscriptionRepo) CreateSubscription(sub model.CreateSubscription) erro
 	return nil
 }
 
-func (sr subscriptionRepo) FindSubscriptionbyID(msidn uuid.UUID) (model.Subscription, error) {
+func (sr subscriptionRepo) FindSubscriptionbyID(msisdn string) (model.Subscription, error) {
 	query := `SELECT * FROM subscription
-	WHERE msidn = $1`
+	WHERE msisdn = $1`
 	var sub model.Subscription
-	row := sr.db.QueryRow(query, msidn)
-	err := row.Scan(&sub.Msidn, &sub.ActivateAt, &sub.SubType, &sub.Status, &sub.CreatedAt, &sub.ModifiedAt)
+	row := sr.db.QueryRow(query, msisdn)
+	err := row.Scan(&sub.Msisdn, &sub.ActivateAt, &sub.SubType, &sub.Status, &sub.CreatedAt, &sub.ModifiedAt)
 	if err != nil || err == sql.ErrNoRows {
 		sr.log.Errorf("No rows were returned! %v", err)
 		return model.Subscription{}, err
@@ -49,8 +48,8 @@ func (sr subscriptionRepo) UpdateSubscription(sub model.CreateSubscription) erro
 	query := `UPDATE subscription
 		SET 
 		(activate_at, sub_type, status, modified_at) = ($1, $2, $3, $4)
-		WHERE msidn = $5`
-	_, err := sr.db.Exec(query, sub.ActivateAt, sub.SubType, sub.Status, time.Now(), sub.Msidn)
+		WHERE msisdn = $5`
+	_, err := sr.db.Exec(query, sub.ActivateAt, sub.SubType, sub.Status, time.Now(), sub.Msisdn)
 	if err != nil {
 		sr.log.Errorf("could not update the data in db: %v", err)
 		return err

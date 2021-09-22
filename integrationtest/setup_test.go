@@ -3,12 +3,13 @@
 package integrationtest
 
 import (
+	"os"
+	"testing"
+
 	"github.com/pmadhvi/telness-manager/handlers"
 	"github.com/pmadhvi/telness-manager/mock"
 	"github.com/pmadhvi/telness-manager/service"
 	"github.com/sirupsen/logrus"
-	"os"
-	"testing"
 )
 
 var server handlers.Server
@@ -17,7 +18,8 @@ func setup() {
 	var (
 		log              = logrus.New()
 		subscriptionRepo = &mock.DbMock{}
-		subsvc           = service.SubscriptionSvc{SubscriptionRepo: subscriptionRepo, Log: log}
+		client           = &mock.ClientMock{}
+		subsvc           = service.SubscriptionSvc{Log: log, SubscriptionRepo: subscriptionRepo, PtsClient: client}
 	)
 	log.SetOutput(os.Stdout)
 	server = handlers.Server{Log: log, Port: "7000", SubscriptionService: subsvc}

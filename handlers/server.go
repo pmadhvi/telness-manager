@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/pmadhvi/telness-manager/model"
 	log "github.com/sirupsen/logrus"
@@ -18,7 +17,7 @@ type Server struct {
 
 type SubscriptionService interface {
 	Create(sub model.CreateSubscription) (model.Subscription, error)
-	FindbyID(id uuid.UUID) (model.Subscription, error)
+	FindbyID(id string) (model.Subscription, error)
 	Update(sub model.CreateSubscription) (model.Subscription, error)
 }
 
@@ -30,11 +29,11 @@ func (s Server) Start() error {
 
 	// define routes and call their handler function
 	router.HandleFunc("/api/subscription/health", s.CheckHealthHandler)
-	router.HandleFunc("/api/subscription/msidn/{msidn}", s.FindHandler).Methods("Get")
+	router.HandleFunc("/api/subscription/msisdn/{msisdn}", s.FindHandler).Methods("Get")
 	router.HandleFunc("/api/subscription", s.CreateHandler).Methods("Post")
 	router.HandleFunc("/api/subscription", s.UpdateHandler).Methods("Patch")
-	router.HandleFunc("/api/subscription/update-subscription/msidn/{msidn}/status/{status}", s.UpdateStatusHandler).Methods("Patch")
-	router.HandleFunc("/api/subscription/update-activation-date/msidn/{msidn}/date/{date}", s.UpdateActivationDateHandler).Methods("Patch")
+	router.HandleFunc("/api/subscription/update-subscription/msisdn/{msisdn}/status/{status}", s.UpdateStatusHandler).Methods("Patch")
+	router.HandleFunc("/api/subscription/update-activation-date/msisdn/{msisdn}/date/{date}", s.UpdateActivationDateHandler).Methods("Patch")
 
 	// start the server on specified port
 	err := http.ListenAndServe(fmt.Sprintf(":%s", s.Port), router)

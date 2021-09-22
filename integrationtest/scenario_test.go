@@ -11,10 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"github.com/pmadhvi/telness-manager/mock"
 
+	"github.com/gorilla/mux"
 	"github.com/pmadhvi/telness-manager/model"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,13 +28,13 @@ func requestResponse(method string, url string, requestBody []byte) (*http.Reque
 	return req, rw
 }
 
-func mockCreateSubscription(msidn uuid.UUID, now, sub_type string, status model.SubStatus) {
+func mockCreateSubscription(msisdn string, now, sub_type string, status model.SubStatus) {
 	mock.Create = func(sub model.CreateSubscription) error {
 		return nil
 	}
-	mock.FindByID = func(msidn uuid.UUID) (model.Subscription, error) {
+	mock.FindByID = func(msisdn string) (model.Subscription, error) {
 		return model.Subscription{
-			Msidn:      msidn,
+			Msisdn:     msisdn,
 			ActivateAt: now,
 			SubType:    sub_type,
 			Status:     status,
@@ -43,12 +42,17 @@ func mockCreateSubscription(msidn uuid.UUID, now, sub_type string, status model.
 			ModifiedAt: now,
 		}, nil
 	}
+	mock.GetOperator = func(msisdn string) (model.PtsResponse, error) {
+		return model.PtsResponse{
+			D: model.OperatorDetails{Name: "Telness AB"},
+		}, nil
+	}
 }
 
-func mockFindSubscription(msidn uuid.UUID, now, sub_type string, status model.SubStatus) {
-	mock.FindByID = func(msidn uuid.UUID) (model.Subscription, error) {
+func mockFindSubscription(msisdn string, now, sub_type string, status model.SubStatus) {
+	mock.FindByID = func(msisdn string) (model.Subscription, error) {
 		return model.Subscription{
-			Msidn:      msidn,
+			Msisdn:     msisdn,
 			ActivateAt: now,
 			SubType:    sub_type,
 			Status:     status,
@@ -56,18 +60,23 @@ func mockFindSubscription(msidn uuid.UUID, now, sub_type string, status model.Su
 			ModifiedAt: now,
 		}, nil
 	}
+	mock.GetOperator = func(msisdn string) (model.PtsResponse, error) {
+		return model.PtsResponse{
+			D: model.OperatorDetails{Name: "Telness AB"},
+		}, nil
+	}
 }
 
-func mockFindNonExistingSubscription(msidn uuid.UUID) {
-	mock.FindByID = func(msidn uuid.UUID) (model.Subscription, error) {
+func mockFindNonExistingSubscription(msisdn string) {
+	mock.FindByID = func(msisdn string) (model.Subscription, error) {
 		return model.Subscription{}, errors.New("subscription not found")
 	}
 }
 
-func mockUpdateSubscription(msidn uuid.UUID, now, sub_type string, status model.SubStatus) {
-	mock.FindByID = func(msidn uuid.UUID) (model.Subscription, error) {
+func mockUpdateSubscription(msisdn string, now, sub_type string, status model.SubStatus) {
+	mock.FindByID = func(msisdn string) (model.Subscription, error) {
 		return model.Subscription{
-			Msidn:      msidn,
+			Msisdn:     msisdn,
 			ActivateAt: now,
 			SubType:    sub_type,
 			Status:     status,
@@ -75,7 +84,11 @@ func mockUpdateSubscription(msidn uuid.UUID, now, sub_type string, status model.
 			ModifiedAt: now,
 		}, nil
 	}
-
+	mock.GetOperator = func(msisdn string) (model.PtsResponse, error) {
+		return model.PtsResponse{
+			D: model.OperatorDetails{Name: "Telness AB"},
+		}, nil
+	}
 	mock.Update = func(sub model.CreateSubscription) error {
 		return nil
 	}
@@ -84,21 +97,20 @@ func mockUpdateSubscription(msidn uuid.UUID, now, sub_type string, status model.
 
 func TestCreateSubscription(t *testing.T) {
 	var (
-		msidnUUID uuid.UUID
-		now       = time.Now().Format("2006-01-02")
+		msisdn = "+46107500500"
+		now    = time.Now().Format("2006-01-02")
 	)
-	msidnUUID, _ = uuid.Parse("c019ecde-17cb-4ef8-8a7d-85937a9250ed")
 	request := []byte(`{
-		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
+		"msisdn": "+46107500500",
 		"activate_at": "2021-10-17",
 		"sub_type":    "pbx",
 		"status":     "pending"}`)
 	req, rw := requestResponse(http.MethodPost, "/api/subscription", request)
 
-	mockCreateSubscription(msidnUUID, now, "pbx", "pending")
+	mockCreateSubscription(msisdn, now, "pbx", "pending")
 	handler := http.HandlerFunc(server.CreateHandler)
 	handler.ServeHTTP(rw, req)
-	if status := rw.Code; status != http.StatusOK {
+	if status := rw.Code; status != http.StatusCreated {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusCreated)
 	}
@@ -107,15 +119,16 @@ func TestCreateSubscription(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, msidnUUID, resp.Msidn)
+	assert.EqualValues(t, msisdn, resp.Msisdn)
 	assert.EqualValues(t, now, resp.ActivateAt)
 	assert.EqualValues(t, "pbx", resp.SubType)
 	assert.EqualValues(t, "pending", resp.Status)
+	assert.EqualValues(t, "Telness AB", resp.Operator)
 }
 
 func TestCreateSubscriptionEmptyStatus(t *testing.T) {
 	request := []byte(`{
-		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
+		"msisdn": "+46107500500",
 		"activate_at": "2021-10-17",
 		"sub_type":    "pbx"}`)
 	req, rw := requestResponse(http.MethodPost, "/api/subscription", request)
@@ -136,19 +149,18 @@ func TestCreateSubscriptionEmptyStatus(t *testing.T) {
 
 func TestUpdateSubscription(t *testing.T) {
 	var (
-		msidnUUID uuid.UUID
-		now       = time.Now().Format("2006-01-02")
+		msisdn = "+46107500501"
+		now    = time.Now().Format("2006-01-02")
 	)
-	msidnUUID, _ = uuid.Parse("c019ecde-17cb-4ef8-8a7d-85937a9250ed")
 	request := []byte(`{
-		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
+		"msisdn": "+46107500501",
 		"activate_at": "2021-10-17",
 		"sub_type":    "cell",
 		"status":     "activated"}`)
 	req, rw := requestResponse(http.MethodPatch, "/api/subscription", request)
 
-	mockUpdateSubscription(msidnUUID, now, "pbx", "pending")
-	mockFindSubscription(msidnUUID, now, "cell", "activated")
+	mockUpdateSubscription(msisdn, now, "pbx", "pending")
+	mockFindSubscription(msisdn, now, "cell", "activated")
 	handler := http.HandlerFunc(server.UpdateHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusOK {
@@ -160,13 +172,14 @@ func TestUpdateSubscription(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, msidnUUID, resp.Msidn)
+	assert.EqualValues(t, msisdn, resp.Msisdn)
 	assert.EqualValues(t, now, resp.ActivateAt)
 	assert.EqualValues(t, "cell", resp.SubType)
 	assert.EqualValues(t, "activated", resp.Status)
+	assert.EqualValues(t, "Telness AB", resp.Operator)
 }
 
-func TestUpdateSubscriptionEmptyMsidn(t *testing.T) {
+func TestUpdateSubscriptionEmptymsisdn(t *testing.T) {
 	request := []byte(`{
 		"activate_at": "2021-09-17",
 		"sub_type":    "pbx",
@@ -184,20 +197,19 @@ func TestUpdateSubscriptionEmptyMsidn(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, "Update request body is not valid: msidn cannot be nil", resp.Message)
+	assert.EqualValues(t, "Update request body is not valid: msisdn cannot be nil", resp.Message)
 }
 
 func TestFindSubscription(t *testing.T) {
 	var (
-		msidnUUID uuid.UUID
-		now       = time.Now().Format("2006-01-02")
+		msisdn = "+46107500500"
+		now    = time.Now().Format("2006-01-02")
 	)
-	msidnUUID, _ = uuid.Parse("c019ecde-17cb-4ef8-8a7d-85937a9250ed")
-	req, rw := requestResponse(http.MethodGet, "/api/subscription/msidn/", nil)
+	req, rw := requestResponse(http.MethodGet, "/api/subscription/msisdn/", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
+		"msisdn": "+46107500500",
 	})
-	mockFindSubscription(msidnUUID, now, "cell", "activated")
+	mockFindSubscription(msisdn, now, "cell", "activated")
 	handler := http.HandlerFunc(server.FindHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusOK {
@@ -209,16 +221,17 @@ func TestFindSubscription(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, msidnUUID, resp.Msidn)
+	assert.EqualValues(t, msisdn, resp.Msisdn)
 	assert.EqualValues(t, now, resp.ActivateAt)
 	assert.EqualValues(t, "cell", resp.SubType)
 	assert.EqualValues(t, "activated", resp.Status)
+	assert.EqualValues(t, "Telness AB", resp.Operator)
 }
 
-func TestFindSubscriptionWithEmptyMsidn(t *testing.T) {
-	req, rw := requestResponse(http.MethodGet, "/api/subscription/msidn/", nil)
+func TestFindSubscriptionWithEmptymsisdn(t *testing.T) {
+	req, rw := requestResponse(http.MethodGet, "/api/subscription/msisdn/", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn": "",
+		"msisdn": "",
 	})
 	handler := http.HandlerFunc(server.FindHandler)
 	handler.ServeHTTP(rw, req)
@@ -231,16 +244,16 @@ func TestFindSubscriptionWithEmptyMsidn(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, "msidn cannot be empty", resp.Message)
+	assert.EqualValues(t, "msisdn cannot be empty", resp.Message)
 }
 
-func TestFindSubscriptionWithNonExistantMsidn(t *testing.T) {
-	req, rw := requestResponse(http.MethodGet, "/api/subscription/msidn/", nil)
+func TestFindSubscriptionWithNonExistantmsisdn(t *testing.T) {
+	req, rw := requestResponse(http.MethodGet, "/api/subscription/msisdn/", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn": "85245804-a7a8-44f1-bfdf-a05896d81e5b",
+		"msisdn": "+46107500578",
 	})
-	msidnUUID, _ := uuid.Parse("85245804-a7a8-44f1-bfdf-a05896d81e5b")
-	mockFindNonExistingSubscription(msidnUUID)
+	msisdn := "+46107500578"
+	mockFindNonExistingSubscription(msisdn)
 	handler := http.HandlerFunc(server.FindHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusNotFound {
@@ -252,23 +265,22 @@ func TestFindSubscriptionWithNonExistantMsidn(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, "Could not find subscription with msidn 85245804-a7a8-44f1-bfdf-a05896d81e5b, subscription not found", resp.Message)
+	assert.EqualValues(t, "Could not find subscription with msisdn +46107500578, subscription not found", resp.Message)
 }
 
 func TestCancelSubscription(t *testing.T) {
 	var (
-		msidnUUID uuid.UUID
-		now       = time.Now().Format("2006-01-02")
+		msisdn = "+46107500500"
+		now    = time.Now().Format("2006-01-02")
 	)
-	msidnUUID, _ = uuid.Parse("c019ecde-17cb-4ef8-8a7d-85937a9250ed")
 
-	req, rw := requestResponse(http.MethodPatch, "/api/subscription/update-subscription/msidn/{msidn}/status/{status}", nil)
+	req, rw := requestResponse(http.MethodPatch, "/api/subscription/update-subscription/msisdn/{msisdn}/status/{status}", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn":  "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
+		"msisdn": "+46107500500",
 		"status": "cancelled",
 	})
-	mockUpdateSubscription(msidnUUID, now, "cell", "activated")
-	mockFindSubscription(msidnUUID, "2021-10-11", "cell", "cancelled")
+	mockUpdateSubscription(msisdn, now, "cell", "activated")
+	mockFindSubscription(msisdn, "2021-10-11", "cell", "cancelled")
 	handler := http.HandlerFunc(server.UpdateStatusHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusOK {
@@ -280,16 +292,17 @@ func TestCancelSubscription(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, msidnUUID, resp.Msidn)
+	assert.EqualValues(t, msisdn, resp.Msisdn)
 	assert.EqualValues(t, "2021-10-11", resp.ActivateAt)
 	assert.EqualValues(t, "cell", resp.SubType)
 	assert.EqualValues(t, "cancelled", resp.Status)
+	assert.EqualValues(t, "Telness AB", resp.Operator)
 }
 
-func TestPauseSubscriptionWithEmptyMsidn(t *testing.T) {
-	req, rw := requestResponse(http.MethodPost, "/api/subscription/update-subscription/msidn/{msidn}/status/{status}", nil)
+func TestPauseSubscriptionWithEmptymsisdn(t *testing.T) {
+	req, rw := requestResponse(http.MethodPost, "/api/subscription/update-subscription/msisdn/{msisdn}/status/{status}", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn":  "",
+		"msisdn": "",
 		"status": "paused",
 	})
 	handler := http.HandlerFunc(server.UpdateStatusHandler)
@@ -303,17 +316,17 @@ func TestPauseSubscriptionWithEmptyMsidn(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, "msidn cannot be empty", resp.Message)
+	assert.EqualValues(t, "msisdn cannot be empty", resp.Message)
 }
 
-func TestReactivateSubscriptionWithNonExistingMsidn(t *testing.T) {
+func TestReactivateSubscriptionWithNonExistingmsisdn(t *testing.T) {
 	req, rw := requestResponse(http.MethodPost, "/api/subscription", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn":  "85245804-a7a8-44f1-bfdf-a05896d81e5b",
+		"msisdn": "+46107500500",
 		"status": "activated",
 	})
-	msidnUUID, _ := uuid.Parse("85245804-a7a8-44f1-bfdf-a05896d81e5b")
-	mockFindNonExistingSubscription(msidnUUID)
+	msisdn := "+46107500500"
+	mockFindNonExistingSubscription(msisdn)
 	handler := http.HandlerFunc(server.UpdateStatusHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusNotFound {
@@ -325,23 +338,22 @@ func TestReactivateSubscriptionWithNonExistingMsidn(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, "Could not find subscription with msidn 85245804-a7a8-44f1-bfdf-a05896d81e5b, subscription not found", resp.Message)
+	assert.EqualValues(t, "Could not find subscription with msisdn +46107500500, subscription not found", resp.Message)
 }
 
 func TestUpdateActivationDate(t *testing.T) {
 	var (
-		msidnUUID uuid.UUID
-		now       = time.Now().Format("2006-01-02")
+		msisdn = "+46107500500"
+		now    = time.Now().Format("2006-01-02")
 	)
-	msidnUUID, _ = uuid.Parse("c019ecde-17cb-4ef8-8a7d-85937a9250ed")
 
-	req, rw := requestResponse(http.MethodPatch, "/api/subscription/update-activation-date/msidn/{msidn}/date/{date}", nil)
+	req, rw := requestResponse(http.MethodPatch, "/api/subscription/update-activation-date/msisdn/{msisdn}/date/{date}", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
-		"date":  "2021-10-11",
+		"msisdn": "+46107500500",
+		"date":   "2021-10-11",
 	})
-	mockUpdateSubscription(msidnUUID, now, "cell", "pending")
-	mockFindSubscription(msidnUUID, "2021-10-11", "cell", "pending")
+	mockUpdateSubscription(msisdn, now, "cell", "pending")
+	mockFindSubscription(msisdn, "2021-10-11", "cell", "pending")
 	handler := http.HandlerFunc(server.UpdateActivationDateHandler)
 	handler.ServeHTTP(rw, req)
 	if status := rw.Code; status != http.StatusOK {
@@ -353,17 +365,18 @@ func TestUpdateActivationDate(t *testing.T) {
 	if err != nil {
 		t.Errorf("could not decode response: %v", err)
 	}
-	assert.EqualValues(t, msidnUUID, resp.Msidn)
+	assert.EqualValues(t, msisdn, resp.Msisdn)
 	assert.EqualValues(t, "2021-10-11", resp.ActivateAt)
 	assert.EqualValues(t, "cell", resp.SubType)
 	assert.EqualValues(t, "pending", resp.Status)
+	assert.EqualValues(t, "Telness AB", resp.Operator)
 }
 
 func TestUpdateActivationDateWithWrongDate(t *testing.T) {
-	req, rw := requestResponse(http.MethodPatch, "/api/subscription/update-activation-date/msidn/{msidn}/date/{date}", nil)
+	req, rw := requestResponse(http.MethodPatch, "/api/subscription/update-activation-date/msisdn/{msisdn}/date/{date}", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
-		"date":  "2021-09-11",
+		"msisdn": "+46107500500",
+		"date":   "2021-09-11",
 	})
 	handler := http.HandlerFunc(server.UpdateActivationDateHandler)
 	handler.ServeHTTP(rw, req)
@@ -380,10 +393,10 @@ func TestUpdateActivationDateWithWrongDate(t *testing.T) {
 }
 
 func TestUpdateActivationDateWithEmptyDate(t *testing.T) {
-	req, rw := requestResponse(http.MethodPatch, "/api/subscription/update-activation-date/msidn/{msidn}/date/{date}", nil)
+	req, rw := requestResponse(http.MethodPatch, "/api/subscription/update-activation-date/msisdn/{msisdn}/date/{date}", nil)
 	req = mux.SetURLVars(req, map[string]string{
-		"msidn": "c019ecde-17cb-4ef8-8a7d-85937a9250ed",
-		"date":  "",
+		"msisdn": "+46107500500",
+		"date":   "",
 	})
 	handler := http.HandlerFunc(server.UpdateActivationDateHandler)
 	handler.ServeHTTP(rw, req)

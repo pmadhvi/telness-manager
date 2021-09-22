@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"time"
 
 	//"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/pmadhvi/telness-manager/model"
 )
@@ -48,7 +48,7 @@ func (s Server) CreateHandler(rw http.ResponseWriter, req *http.Request) {
 		returnError(rw, msg, 400)
 		return
 	}
-	respondSuccessJSON(rw, http.StatusOK, sub)
+	respondSuccessJSON(rw, http.StatusCreated, sub)
 }
 
 // UpdateHandler is an httphandler to handle request to create an subscription
@@ -91,17 +91,16 @@ func (s Server) UpdateHandler(rw http.ResponseWriter, req *http.Request) {
 func (s Server) FindHandler(rw http.ResponseWriter, req *http.Request) {
 	// feteching the quary parameters from request url
 	vars := mux.Vars(req)
-	msidn := vars["msidn"]
-	if msidn == "" {
-		s.Log.Error("msidn cannot be empty")
-		returnError(rw, "msidn cannot be empty", 400)
+	msisdn := vars["msisdn"]
+	if msisdn == "" {
+		s.Log.Error("msisdn cannot be empty")
+		returnError(rw, "msisdn cannot be empty", 400)
 		return
 	}
-	uuidMsidn := uuid.MustParse(msidn)
 	var sub model.Subscription
-	sub, err := s.SubscriptionService.FindbyID(uuidMsidn)
+	sub, err := s.SubscriptionService.FindbyID(msisdn)
 	if err != nil {
-		msg := fmt.Sprintf("Could not find subscription with msidn %v, %v", uuidMsidn, err)
+		msg := fmt.Sprintf("Could not find subscription with msisdn %v, %v", msisdn, err)
 		s.Log.Error(msg)
 		returnError(rw, msg, 404)
 		return
@@ -113,10 +112,10 @@ func (s Server) FindHandler(rw http.ResponseWriter, req *http.Request) {
 func (s Server) UpdateStatusHandler(rw http.ResponseWriter, req *http.Request) {
 	// feteching the quary parameters from request url and validating it
 	vars := mux.Vars(req)
-	msidn := vars["msidn"]
+	msisdn := vars["msisdn"]
 	status := vars["status"]
-	if msidn == "" {
-		msg := fmt.Sprint("msidn cannot be empty")
+	if msisdn == "" {
+		msg := fmt.Sprint("msisdn cannot be empty")
 		s.Log.Error(msg)
 		returnError(rw, msg, 400)
 		return
@@ -132,17 +131,16 @@ func (s Server) UpdateStatusHandler(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	uuidMsidn := uuid.MustParse(msidn)
 	var sub model.Subscription
-	foundSub, err := s.SubscriptionService.FindbyID(uuidMsidn)
+	foundSub, err := s.SubscriptionService.FindbyID(msisdn)
 	if err != nil {
-		msg := fmt.Sprintf("Could not find subscription with msidn %v, %v", uuidMsidn, err)
+		msg := fmt.Sprintf("Could not find subscription with msisdn %v, %v", msisdn, err)
 		s.Log.Error(msg)
 		returnError(rw, msg, 404)
 		return
 	}
 	updateSub := model.CreateSubscription{
-		Msidn:      foundSub.Msidn,
+		Msisdn:     foundSub.Msisdn,
 		ActivateAt: foundSub.ActivateAt,
 		SubType:    foundSub.SubType,
 		Status:     model.SubStatus(status),
@@ -161,11 +159,11 @@ func (s Server) UpdateStatusHandler(rw http.ResponseWriter, req *http.Request) {
 func (s Server) UpdateActivationDateHandler(rw http.ResponseWriter, req *http.Request) {
 	// feteching the quary parameters from request url and validate it
 	vars := mux.Vars(req)
-	msidn := vars["msidn"]
+	msisdn := vars["msisdn"]
 	date := vars["date"]
 
-	if msidn == "" {
-		msg := fmt.Sprint("msidn cannot be empty")
+	if msisdn == "" {
+		msg := fmt.Sprint("msisdn cannot be empty")
 		s.Log.Error(msg)
 		returnError(rw, msg, 400)
 		return
@@ -191,11 +189,11 @@ func (s Server) UpdateActivationDateHandler(rw http.ResponseWriter, req *http.Re
 		returnError(rw, msg, 400)
 		return
 	}
-	uuidMsidn := uuid.MustParse(msidn)
+
 	var sub model.Subscription
-	foundSub, err := s.SubscriptionService.FindbyID(uuidMsidn)
+	foundSub, err := s.SubscriptionService.FindbyID(msisdn)
 	if err != nil {
-		msg := fmt.Sprintf("Could not find subscription with msidn %v, %v", uuidMsidn, err)
+		msg := fmt.Sprintf("Could not find subscription with msisdn %v, %v", msisdn, err)
 		s.Log.Error(msg)
 		returnError(rw, msg, 404)
 		return
@@ -207,7 +205,7 @@ func (s Server) UpdateActivationDateHandler(rw http.ResponseWriter, req *http.Re
 		return
 	}
 	updateSub := model.CreateSubscription{
-		Msidn:      foundSub.Msidn,
+		Msisdn:     foundSub.Msisdn,
 		ActivateAt: date,
 		SubType:    foundSub.SubType,
 		Status:     foundSub.Status,
@@ -235,7 +233,7 @@ func (s Server) CheckHealthHandler(rw http.ResponseWriter, req *http.Request) {
 
 func respondSuccessJSON(rw http.ResponseWriter, statusCode int, response interface{}) {
 	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
+	rw.WriteHeader(statusCode)
 	json.NewEncoder(rw).Encode(response)
 }
 
@@ -258,8 +256,11 @@ func validateRequest(sub model.CreateSubscription) error {
 		return errors.New("could not parse string activate_at into time.Time format")
 	}
 
-	if sub.Msidn == uuid.Nil {
-		return errors.New("msidn cannot be nil")
+	var regexp = regexp.MustCompile(`^\+46[1-9][0-9]{8,12}$`)
+	if sub.Msisdn == "" {
+		return errors.New("msisdn cannot be nil")
+	} else if !regexp.MatchString(sub.Msisdn) {
+		return errors.New("msisdn must be of format: +46107500500")
 	} else if sub.ActivateAt == "" {
 		return errors.New("activate_at cannot be empty")
 	} else if activate_at.Before(time.Now()) {
