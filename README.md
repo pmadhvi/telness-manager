@@ -1,8 +1,8 @@
 # telness-mananger
-Manages the subscription(Create, Update and Get, and Update of status and activation_date )
+Manages the subscription(Create, Update and Get, and Update of status and activation_date of an subscription)
 
 ## Description
-The Application exposes rest api's for creating, updataing subscription and  finding existing subscription in system.
+The Application exposes rest api's for creating, updataing subscription and  finding existing subscriptions in system.
 
 The routes for application includes:
 -----------------------------------------------
@@ -14,7 +14,7 @@ The routes for application includes:
 * UpdateStatusSubscription: "/api/subscription/update-subscription/msisdn/{msisdn}/status/{status}"
 * UpdateActivateDate: "/api/subscription/update-activation-date/msisdn/{msisdn}/date/{date}"
 
-msisdn: define your subscription unique number/phone number.
+msisdn: define your subscription unique number/phone number in the formt [+46166186815].
 date: string value of future date
 
 Note: CreateSubscription & UpdateSubscription take json data to create and update subscription

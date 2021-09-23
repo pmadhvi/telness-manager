@@ -3,47 +3,52 @@ package client
 import (
 	"testing"
 
-	"github.com/sirupsen/logrus"
+	"github.com/pmadhvi/telness-manager/mock"
+	"github.com/pmadhvi/telness-manager/model"
+	"github.com/stretchr/testify/assert"
 )
 
-var client = &Client{
-	host: "http://api.pts.se/PTSNumberService/Pts_Number_Service.svc/json/SearchByNumber",
-	log:  logrus.New(),
+var client = &mock.ClientMock{}
+
+func GetOperatorSuccess() {
+	mock.GetOperator = func(msisdn string) (model.PtsResponse, error) {
+		return model.PtsResponse{
+			D: model.OperatorDetails{Name: "Telness AB"},
+		}, nil
+	}
 }
 
-func TestClient_GetOperatorDetails(t *testing.T) {
-	tests := []struct {
-		name    string
-		msisdn  string
-		want    string
-		wantErr bool
-	}{
-		{
-			name:   "valid swedish phone number(+46) should return correct operator name",
-			msisdn: "+46107500500",
-			want:   "Telness AB",
-		},
-		{
-			name:   "valid swedish phone number(without +46) should return correct operator name",
-			msisdn: "0107500500",
-			want:   "Telness AB",
-		},
-		{
-			name:   "invalid swedish phone number should return missing operator",
-			msisdn: "01050",
-			want:   "Operatör saknas",
-		},
+func GetOperatorFail() {
+	mock.GetOperator = func(msisdn string) (model.PtsResponse, error) {
+		return model.PtsResponse{
+			D: model.OperatorDetails{Name: "Operatör saknas"},
+		}, nil
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := client.GetOperatorDetails(tt.msisdn)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Client.GetOperatorDetails() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got.D.Name != tt.want {
-				t.Errorf("Client.GetOperatorDetails() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+}
+
+func TestGetOperatorDetailsSuccessWithoutCountryCode(t *testing.T) {
+	msisdn := "0107500500"
+	GetOperatorSuccess()
+	resp, err := client.GetOperatorDetails(msisdn)
+	assert.NotNil(t, resp)
+	assert.Nil(t, err)
+	assert.EqualValues(t, "Telness AB", resp.D.Name)
+}
+
+func TestGetOperatorDetailsSuccessWithCountryCode(t *testing.T) {
+	msisdn := "+46107500500"
+	GetOperatorSuccess()
+	resp, err := client.GetOperatorDetails(msisdn)
+	assert.NotNil(t, resp)
+	assert.Nil(t, err)
+	assert.EqualValues(t, "Telness AB", resp.D.Name)
+}
+
+func TestGetOperatorDetailsWithWrongFormat(t *testing.T) {
+	msisdn := "0107500500000"
+	GetOperatorFail()
+	resp, err := client.GetOperatorDetails(msisdn)
+	assert.NotNil(t, resp)
+	assert.Nil(t, err)
+	assert.EqualValues(t, "Operatör saknas", resp.D.Name)
 }

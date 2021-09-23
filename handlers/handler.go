@@ -256,11 +256,11 @@ func validateRequest(sub model.CreateSubscription) error {
 		return errors.New("could not parse string activate_at into time.Time format")
 	}
 
-	var regexp = regexp.MustCompile(`^\+46[1-9][0-9]{8,12}$`)
+	var regexp = regexp.MustCompile(`^\+46[1-9][0-9]{8}$`)
 	if sub.Msisdn == "" {
 		return errors.New("msisdn cannot be nil")
 	} else if !regexp.MatchString(sub.Msisdn) {
-		return errors.New("msisdn must be of format: +46107500500")
+		return errors.New("msisdn must be of format: +46 followed by 9 digits of phone number, example - [+46107500500]")
 	} else if sub.ActivateAt == "" {
 		return errors.New("activate_at cannot be empty")
 	} else if activate_at.Before(time.Now()) {
